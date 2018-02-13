@@ -33,6 +33,7 @@ public class HipChatKudosEndpoint {
                         .messageFormat("html")
                         .color("gray")
                         .card(ImmutableWebhookOutboundCard.builder()
+                                .id("fee4d9a3-685d-4cbd-abaa-c8850d9b1960")
                                 .style("application")
                                 .description(ImmutableWebhookOutboundCardDescription.builder()
                                         .format("html")

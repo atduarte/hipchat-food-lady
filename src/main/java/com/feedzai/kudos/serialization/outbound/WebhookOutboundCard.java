@@ -8,6 +8,9 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableWebhookOutboundCard.class)
 public interface WebhookOutboundCard {
     @Nullable
+    String id();
+
+    @Nullable
     String style();
 
     @Nullable
