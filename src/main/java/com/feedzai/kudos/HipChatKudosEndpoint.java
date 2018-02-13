@@ -2,14 +2,21 @@ package com.feedzai.kudos;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.feedzai.kudos.serialization.inbound.WebhookInboundMention;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundWrapper;
 import com.feedzai.kudos.serialization.outbound.*;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Path("/")
 public class HipChatKudosEndpoint {
@@ -23,13 +30,38 @@ public class HipChatKudosEndpoint {
     @Path("/kudos")
     @Produces({"application/json"})
     @Consumes({"application/json"})
-    public String kudos(String dataStr) throws IOException {
+    public String kudos(String dataStr) throws IOException, NoSuchAlgorithmException {
 
         WebhookInboundWrapper inbound = objectMapper.readValue(dataStr, WebhookInboundWrapper.class);
+        System.err.println(dataStr);
+
+        Pattern pattern = Pattern.compile("^/kudos @([^ ]*) (for .*)$");
+        Matcher matcher = pattern.matcher(inbound.item().message().message());
+
+        if (!matcher.find()) {
+            return shrug("pattern mismatch!");
+        }
+
+        String kudosToMentionName = matcher.group(1);
+        String kudosFeat = StringUtils.capitalize(matcher.group(2));
+
+        Optional<WebhookInboundMention> kudosToMention = inbound.item().message().mentions().stream()
+                .filter(m -> StringUtils.equals(m.mentionName(), kudosToMentionName))
+                .findAny();
+
+        if (!kudosToMention.isPresent()) {
+            return shrug(String.format("who is %s?", kudosToMentionName));
+        }
+
+        String kudosToEmail = String.format("%s@feedzai.com", StringUtils.lowerCase(kudosToMention.get().name()).replaceAll(" ", "."));
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        String KudosToDigest = new String(md.digest(kudosToEmail.getBytes()));
+
+        System.err.println(kudosToEmail);
 
         WebhookOutboundWrapper outboundWrapper =
                 ImmutableWebhookOutboundWrapper.builder()
-                        .message(inbound.item().message().message())
+                        .message(kudosFeat)
                         .messageFormat("html")
                         .color("gray")
                         .card(ImmutableWebhookOutboundCard.builder()
@@ -37,21 +69,31 @@ public class HipChatKudosEndpoint {
                                 .style("application")
                                 .description(ImmutableWebhookOutboundCardDescription.builder()
                                         .format("html")
-                                        .value(inbound.item().message().message())
+                                        .value(kudosFeat)
                                         .build())
                                 .title("Kudos to %s")
                                 .thumbnail(ImmutableWebhookOutboundCardThumbnail.builder()
-                                        .url("http://www.gravatar.com/avatar/7bf236dc0db1aedd29711a27a34f4501?s=512")
+                                        .url(String.format("http://www.gravatar.com/avatar/%s?s=512",KudosToDigest))
                                         .build())
                                 .icon(ImmutableWebhookOutboundCardIcon.builder()
-                                        .url("http://3.bp.blogspot.com/-zT-YDxq9UGM/U49t_QjBZ9I/AAAAAAAAAUQ/C0MDJyPE19M/s1600/Kudos+Thumbs+Up.png")
+                                        .url("http://hipchat-kudos-hipchat-kudos.7e14.starter-us-west-2.openshiftapps.com/hipchat-kudos/images/icon.png")
                                         .build())
                                 .build())
                         .build();
 
-        System.err.println(dataStr);
-        System.err.println(inbound.item().message().message());
+
         System.err.println(objectMapper.writeValueAsString(outboundWrapper));
+
+        return objectMapper.writeValueAsString(outboundWrapper);
+
+    }
+
+    private String shrug(final String context) throws JsonProcessingException {
+        WebhookOutboundWrapper outboundWrapper =
+                ImmutableWebhookOutboundWrapper.builder()
+                        .message(String.format("(shrug) %s", context))
+                        .color("gray")
+                        .build();
 
         return objectMapper.writeValueAsString(outboundWrapper);
     }
