@@ -5,7 +5,7 @@ Registering the Webhook
 
 1. Call the webhook endpoint
 
-	curl -X POST "https://feedzai.hipchat.com//v2/room/Software%20Engineering/webhook" -H "Content-Type: application/json" -H "Authorization: Bearer <your token>" -d "{\"url\":\"http://hipchat-kudos-hipchat-kudos.7e14.starter-us-west-2.openshiftapps.com/hipchat-kudos/rest/kudos\",\"pattern\":\"^/kudos.*\",\"event\":\"room_message\",\"authentication\":\"jwt\",\"name\":\"Kudos\"}
+	curl -X POST "https://feedzai.hipchat.com//v2/room/Software%20Engineering/webhook" -H "Content-Type: application/json" -H "Authorization: Bearer <your token>" -d "{\"url\":\"http://hipchat-kudos-hipchat-kudos-plugin.7e14.starter-us-west-2.openshiftapps.com/hipchat-kudos/rest/kudos\",\"pattern\":\"^/kudos.*\",\"event\":\"room_message\",\"authentication\":\"jwt\",\"name\":\"Kudos\"}
 "
 
 Testing the REST Endpoint locally

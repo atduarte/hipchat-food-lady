@@ -1,5 +1,6 @@
 package com.feedzai.kudos.serialization.inbound;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.feedzai.kudos.serialization.Nullable;
@@ -12,7 +13,8 @@ import java.util.List;
 @JsonDeserialize(as = ImmutableWebhookInboundMessage.class)
 public interface WebhookInboundMessage {
     @Nullable
-    Date date();
+    // hipchat sends nanoseconds which in not a nice parse 2018-02-12T21:50:03.061785+00:00"
+    String date();
 
     @Nullable
     WebhookInboundFrom from();
