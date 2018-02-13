@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundMention;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundWrapper;
 import com.feedzai.kudos.serialization.outbound.*;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.ws.rs.Consumes;
@@ -55,7 +56,7 @@ public class HipChatKudosEndpoint {
 
         String kudosToEmail = String.format("%s@feedzai.com", StringUtils.lowerCase(kudosToMention.get().name()).replaceAll(" ", "."));
         MessageDigest md = MessageDigest.getInstance("MD5");
-        String KudosToDigest = new String(md.digest(kudosToEmail.getBytes()));
+        String KudosToDigest = Hex.encodeHexString(md.digest(kudosToEmail.getBytes()));
 
         System.err.println(kudosToEmail);
 
@@ -71,9 +72,9 @@ public class HipChatKudosEndpoint {
                                         .format("html")
                                         .value(kudosFeat)
                                         .build())
-                                .title("Kudos to %s")
+                                .title(String.format("Kudos to %s", kudosToMention.get().name()))
                                 .thumbnail(ImmutableWebhookOutboundCardThumbnail.builder()
-                                        .url(String.format("http://www.gravatar.com/avatar/%s?s=512",KudosToDigest))
+                                        .url(String.format("http://www.gravatar.com/avatar/%s?s=512", KudosToDigest))
                                         .build())
                                 .icon(ImmutableWebhookOutboundCardIcon.builder()
                                         .url("http://hipchat-kudos-hipchat-kudos.7e14.starter-us-west-2.openshiftapps.com/hipchat-kudos/images/icon.png")
