@@ -1,13 +1,16 @@
 package com.feedzai.kudos;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.feedzai.kudos.serialization.KudosIsStash;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundMention;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundWrapper;
 import com.feedzai.kudos.serialization.outbound.*;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 
+import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -26,15 +29,17 @@ import java.util.regex.Pattern;
 public class HipChatKudosEndpoint {
     private ObjectMapper objectMapper;
     private Map<Pattern, BiFunction<Matcher, WebhookInboundWrapper, WebhookOutboundWrapper>> patternHandlers = new HashMap<>();
-    private Map<String, String> knownEmails = new HashMap<>();
+
+    @Inject
+    private KudosIsStash kudosIsStash;
 
     public HipChatKudosEndpoint() {
         this.objectMapper = new ObjectMapper();
+        this.objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
         patternHandlers.put(Pattern.compile("^/kudos @([^ ]*) (for .*)$"), this::kudosFor);
-        patternHandlers.put(Pattern.compile("^/kudos (@[^ ]*) is ([^ ]*@feedzai.com)$"), this::kudosIs);
+        patternHandlers.put(Pattern.compile("^/kudos @([^ ]*) is ([^ ]*@feedzai.com)$"), this::kudosIs);
         patternHandlers.put(Pattern.compile("^/kudos ping$"), this::kudosPing);
-
     }
 
     private WebhookOutboundWrapper kudosPing(final Matcher matcher, final WebhookInboundWrapper inbound) {
@@ -46,7 +51,7 @@ public class HipChatKudosEndpoint {
             String kudosToMentionName = matcher.group(1);
             String kudosFeat = StringUtils.capitalize(matcher.group(2));
 
-            String kudosToEmail = knownEmails.get(kudosToMentionName);
+            String kudosToEmail = kudosIsStash.get(kudosToMentionName);
 
             Optional<WebhookInboundMention> kudosToMention = inbound.item().message().mentions().stream()
                     .filter(m -> StringUtils.equals(m.mentionName(), kudosToMentionName))
@@ -57,7 +62,10 @@ public class HipChatKudosEndpoint {
             }
 
             if (StringUtils.isBlank(kudosToEmail)) {
+                System.err.println(String.format("No kudos-is command found for %s", kudosToMentionName));
                 kudosToEmail = String.format("%s@feedzai.com", StringUtils.lowerCase(kudosToMention.get().name()).replaceAll(" ", "."));
+            } else {
+                System.err.println(String.format("Found kudos-is command for %s with %s", kudosToMentionName, kudosToEmail));
             }
 
             MessageDigest md = MessageDigest.getInstance("MD5");
@@ -92,7 +100,9 @@ public class HipChatKudosEndpoint {
         String kudosToMentionName = matcher.group(1);
         String KudosToEmail = StringUtils.lowerCase(matcher.group(2));
 
-        this.knownEmails.put(kudosToMentionName, KudosToEmail);
+        this.kudosIsStash.put(kudosToMentionName, KudosToEmail);
+
+        System.err.println(kudosToMentionName + " is now " + KudosToEmail);
 
         return ImmutableWebhookOutboundWrapper.builder().build();
     }
@@ -103,12 +113,15 @@ public class HipChatKudosEndpoint {
     @Produces({"application/json"})
     @Consumes({"application/json"})
     public String kudos(String dataStr) throws IOException, NoSuchAlgorithmException {
+        System.err.println(dataStr);
         WebhookInboundWrapper inbound = objectMapper.readValue(dataStr, WebhookInboundWrapper.class);
 
         for (Map.Entry<Pattern, BiFunction<Matcher, WebhookInboundWrapper, WebhookOutboundWrapper>> handler : this.patternHandlers.entrySet()) {
             Matcher matcher = handler.getKey().matcher(inbound.item().message().message());
             if (matcher.matches()) {
-                return objectMapper.writeValueAsString(handler.getValue().apply(matcher, inbound));
+                String outbound = objectMapper.writeValueAsString(handler.getValue().apply(matcher, inbound));
+                System.err.println(outbound);
+                return outbound;
             }
         }
 
@@ -118,7 +131,12 @@ public class HipChatKudosEndpoint {
     private WebhookOutboundWrapper shrug(final String context) {
         return ImmutableWebhookOutboundWrapper.builder()
                 .message(String.format("(shrug) %s", context))
+                .messageFormat("text")
                 .color("gray")
                 .build();
+    }
+
+    public static void main(String... args) throws JsonProcessingException {
+        System.out.println(new ObjectMapper().writeValueAsString(ImmutableWebhookOutboundWrapper.builder().build()));
     }
 }
