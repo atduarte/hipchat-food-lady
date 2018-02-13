@@ -33,18 +33,20 @@ public class HipChatKudosEndpoint {
 
         patternHandlers.put(Pattern.compile("^/kudos @([^ ]*) (for .*)$"), this::kudosFor);
         patternHandlers.put(Pattern.compile("^/kudos (@[^ ]*) is ([^ ]*@feedzai.com)$"), this::kudosIs);
+        patternHandlers.put(Pattern.compile("^/kudos ping$"), this::kudosPing);
 
+    }
+
+    private WebhookOutboundWrapper kudosPing(final Matcher matcher, final WebhookInboundWrapper inbound) {
+        return shrug("pong");
     }
 
     private WebhookOutboundWrapper kudosFor(final Matcher matcher, final WebhookInboundWrapper inbound) {
         try {
-            matcher.find();
-
             String kudosToMentionName = matcher.group(1);
             String kudosFeat = StringUtils.capitalize(matcher.group(2));
 
             String kudosToEmail = knownEmails.get(kudosToMentionName);
-
 
             Optional<WebhookInboundMention> kudosToMention = inbound.item().message().mentions().stream()
                     .filter(m -> StringUtils.equals(m.mentionName(), kudosToMentionName))
@@ -101,7 +103,6 @@ public class HipChatKudosEndpoint {
     @Produces({"application/json"})
     @Consumes({"application/json"})
     public String kudos(String dataStr) throws IOException, NoSuchAlgorithmException {
-
         WebhookInboundWrapper inbound = objectMapper.readValue(dataStr, WebhookInboundWrapper.class);
 
         for (Map.Entry<Pattern, BiFunction<Matcher, WebhookInboundWrapper, WebhookOutboundWrapper>> handler : this.patternHandlers.entrySet()) {
@@ -114,11 +115,10 @@ public class HipChatKudosEndpoint {
         return objectMapper.writeValueAsString(shrug("pattern mismatch!"));
     }
 
-    private WebhookOutboundWrapper shrug(final String context) throws JsonProcessingException {
+    private WebhookOutboundWrapper shrug(final String context) {
         return ImmutableWebhookOutboundWrapper.builder()
                 .message(String.format("(shrug) %s", context))
                 .color("gray")
                 .build();
     }
 }
-
