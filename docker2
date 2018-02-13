@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: 2018-02-13T02:10:50Z
+  name: docker-registry
+  namespace: hipchat-kudos
+  resourceVersion: "2025812850"
+  selfLink: /api/v1/namespaces/hipchat-kudos/services/docker-registry
+  uid: 1c9ee613-1063-11e8-bd42-0a2a2b777307
+spec:
+  clusterIP: 172.30.136.123
+  ports:
+  - port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    docker-registry: default
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

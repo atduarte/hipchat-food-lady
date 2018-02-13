@@ -1,5 +1,6 @@
 package com.feedzai.kudos;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.feedzai.kudos.serialization.inbound.WebhookInboundWrapper;
 import com.feedzai.kudos.serialization.outbound.*;
@@ -26,9 +27,6 @@ public class HipChatKudosEndpoint {
 
         WebhookInboundWrapper inbound = objectMapper.readValue(dataStr, WebhookInboundWrapper.class);
 
-        System.err.println(dataStr);
-        System.err.println(inbound.item().message().message());
-
         WebhookOutboundWrapper outboundWrapper =
                 ImmutableWebhookOutboundWrapper.builder()
                         .message(inbound.item().message().message())
@@ -49,6 +47,10 @@ public class HipChatKudosEndpoint {
                                         .build())
                                 .build())
                         .build();
+
+        System.err.println(dataStr);
+        System.err.println(inbound.item().message().message());
+        System.err.println(objectMapper.writeValueAsString(outboundWrapper));
 
         return objectMapper.writeValueAsString(outboundWrapper);
     }

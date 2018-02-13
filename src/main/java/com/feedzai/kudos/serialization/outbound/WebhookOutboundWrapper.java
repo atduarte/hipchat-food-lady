@@ -9,7 +9,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableWebhookOutboundWrapper.class)
 public interface WebhookOutboundWrapper {
     @Nullable
-    @JsonProperty("@JsonProperty(\"is_archived\")")
+    @JsonProperty("message_format")
     String messageFormat();
 
     @Nullable
